@@ -1,0 +1,11 @@
+---
+title: "TD VI: Inteligencia Artificial - Trabajo práctico 1 (2023 2do semestre)"
+author: 
+    - "Zoe Borrone"
+    - "Luca Mazzarello"
+    - "Ignacio Pardo"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+# Introducción
