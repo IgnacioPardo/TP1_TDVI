@@ -126,16 +126,15 @@ plot_exp_results <- function(filename_exp_results, filename_plot, width, height)
 
 # Load the datasets
 datasets_to_pred <- list(
-  load_df("./data/customer_churn.csv", "Churn", "churn"), # Source: https://archive.ics.uci.edu/dataset/563/iranian+churn+dataset
-  load_df("./data/heart.csv", "Heart", "HeartDisease"),    # Source: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
   load_df("./data/students.csv", "Student", "pass"),
-  load_df("./data/flujo_vehicular.csv", "Flujo", "greater_mean"),
+  load_df("./data/students_noised_input.csv", "w/0.2 input noise", "pass"),
+  load_df("./data/students_noised_output.csv", "w/0.2 output noise", "pass")
 )
 
 # Run the experiment
 if (RERUN_EXP ==  TRUE) {
-  run_experiment(datasets_to_pred, "./outputs/tables/sample_exp.txt")
+  run_experiment(datasets_to_pred, "./outputs/tables/propio_exp.txt")
 }
 
 # Plot the experiment results
-plot_exp_results( "./outputs/tables/sample_exp.txt", "./outputs/plots/sample_exp.jpg", width=5, height=4)
+plot_exp_results( "./outputs/tables/propio_exp.txt", "./outputs/plots/propio_exp.jpg", width=5, height=4)
