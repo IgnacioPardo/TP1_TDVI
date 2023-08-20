@@ -30,8 +30,30 @@ run_experiment <- function(datasets_to_pred, filepath) {
   # Iterate through different dataset, imputation, and proportion of missing values combinations
   for (dtp in datasets_to_pred) {
     for (impute in c("Yes", "No")) {
-      for (prop_NAs in c(0, 0.7)) {
-        print(c(dtp$dataset_name, impute, prop_NAs))
+      for (prop_NAs in c(0)) {
+        
+        for (prop_noise in c(0, 0.2, 0.5)){
+          
+          numeric_keys <- dtp$data_df %>%
+            select_if(is.numeric) %>%
+            names()
+          
+          for (key in numeric_keys) {
+            dtp$data_df[, key] <- as.numeric(dtp$data_df[, key])
+            
+            min_val <- min(dtp$data_df[, key])
+            max_val <- max(dtp$data_df[, key])
+            noise <- runif(nrow(dtp$data_df), min_val, max_val)
+            noise <- round(noise)
+            
+            p <- runif(1, 0, 1)
+            
+            if (p < prop_noise) {
+              dtp$data_df[, key] <- noise
+            }
+          }
+        
+        #print(c(dtp$dataset_name, impute, prop_NAs))
 
         # Configure preprocessing options based on imputation choice
         if (impute == "Yes") {
@@ -70,10 +92,11 @@ run_experiment <- function(datasets_to_pred, filepath) {
         }
 
         res_tmp$IMPUTED <- impute
-        res_tmp$prop_NAs <- prop_NAs
+        res_tmp$prop_NAs <- prop_noise
         exp_results[[i]] <- res_tmp
         rm(res_tmp)  # Clean up temporary result
         i <- i + 1  # Increment result counter
+        }
       }
     }
   }
@@ -126,9 +149,12 @@ plot_exp_results <- function(filename_exp_results, filename_plot, width, height)
 
 # Load the datasets
 datasets_to_pred <- list(
-  load_df("./data/students.csv", "Student", "pass"),
-  load_df("./data/students_noised_input.csv", "w/0.2 input noise", "pass"),
-  load_df("./data/students_noised_output.csv", "w/0.2 output noise", "pass")
+  #load_df("./data/students.csv", "Student", "pass"),
+  #load_df("./data/students_noised_input.csv", "w/0.2 input noise", "pass"),
+  #load_df("./data/students_noised_output.csv", "w/0.2 output noise", "pass")
+  load_df("./data/customer_churn.csv", "Churn", "churn"), # Source: https://archive.ics.uci.edu/dataset/563/iranian+churn+dataset
+  load_df("./data/heart.csv", "Heart", "HeartDisease"),    # Source: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
+  load_df("./data/students.csv", "Student", "pass")
 )
 
 # Run the experiment

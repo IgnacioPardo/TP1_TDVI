@@ -1,3 +1,4 @@
+
 yes_no <- function(x) {
     if (x) {
         return("YES")
