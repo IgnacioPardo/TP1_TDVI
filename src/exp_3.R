@@ -1,3 +1,5 @@
+set.seed(364630336)
+
 # Load the necessary libraries for data analysis and visualization
 library(ggplot2)  # For creating plots
 library(dplyr)    # For data manipulation
@@ -30,16 +32,15 @@ run_experiment <- function(datasets_to_pred, filepath) {
   # Iterate through different dataset, imputation, and proportion of missing values combinations
   for (dtp in datasets_to_pred) {
     for (impute in c("Yes", "No")) {
-      for (prop_NAs in c(0)) {
-        print(c(dtp$dataset_name, impute, prop_NAs))
-
+      for (ohe in c(TRUE, FALSE)){
+        
         # Configure preprocessing options based on imputation choice
         if (impute == "Yes") {
           preprocess_control <- list(
-            prop_NAs=prop_NAs,
+            prop_NAs=0,
             impute_NAs=TRUE,
             treat_NAs_as_new_levels=FALSE,
-            do_ohe=FALSE,
+            do_ohe=ohe,
             discretize=TRUE,
             n_bins=N_BINS,
             ord_to_numeric=FALSE,
@@ -47,10 +48,10 @@ run_experiment <- function(datasets_to_pred, filepath) {
           )
         } else if (impute == "No") {
           preprocess_control <- list(
-            prop_NAs=prop_NAs,
+            prop_NAs=0,
             impute_NAs=FALSE,
             treat_NAs_as_new_levels=FALSE,
-            do_ohe=FALSE,
+            do_ohe=ohe,
             discretize=TRUE,
             n_bins=N_BINS,
             ord_to_numeric=FALSE,
@@ -70,7 +71,8 @@ run_experiment <- function(datasets_to_pred, filepath) {
         }
 
         res_tmp$IMPUTED <- impute
-        res_tmp$prop_NAs <- prop_NAs
+        # use prop_NAs table value of ohe yes/no, convert TRUE/FALSE to 0 and 1
+        res_tmp$prop_NAs <- as.numeric(ohe)
         exp_results[[i]] <- res_tmp
         rm(res_tmp)  # Clean up temporary result
         i <- i + 1  # Increment result counter
@@ -127,9 +129,8 @@ plot_exp_results <- function(filename_exp_results, filename_plot, width, height)
 # Load the datasets
 datasets_to_pred <- list(
   load_df("./data/customer_churn.csv", "Churn", "churn"), # Source: https://archive.ics.uci.edu/dataset/563/iranian+churn+dataset
-  load_df("./data/heart.csv", "Heart", "HeartDisease"),    # Source: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
-  load_df("./data/students.csv", "Student", "pass"),
-  load_df("./data/flujo_vehicular.csv", "Flujo", "greater_mean")
+  load_df("./data/heart.csv", "Heart", "HeartDisease"),    # Source: https://archive.ics.uci.edu/dataset/45/heart+disease
+  load_df("./data/students.csv", "Student", "pass")
 )
 
 # Run the experiment

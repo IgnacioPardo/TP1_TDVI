@@ -1,3 +1,5 @@
+set.seed(364630336)
+
 # Load the necessary libraries for data analysis and visualization
 library(ggplot2)  # For creating plots
 library(dplyr)    # For data manipulation
@@ -127,9 +129,8 @@ plot_exp_results <- function(filename_exp_results, filename_plot, width, height)
 # Load the datasets
 datasets_to_pred <- list(
   load_df("./data/customer_churn.csv", "Churn", "churn"), # Source: https://archive.ics.uci.edu/dataset/563/iranian+churn+dataset
-  load_df("./data/heart.csv", "Heart", "HeartDisease"),    # Source: https://www.kaggle.com/datasets/arnabchaki/data-science-salaries-2023
+  load_df("./data/heart.csv", "Heart", "HeartDisease"),    # Source: https://archive.ics.uci.edu/dataset/45/heart+disease
   load_df("./data/students.csv", "Student", "pass"),
-  load_df("./data/flujo_vehicular.csv", "Flujo", "greater_mean")
 )
 
 # Run the experiment
