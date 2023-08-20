@@ -1,0 +1,12 @@
+---
+title: "Opcion 1"
+author: 
+    - "Zoe Borrone"
+    - "Luca Mazzarello"
+    - "Ignacio Pardo"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+source ("exp_1.R")
+
+# Introducción
