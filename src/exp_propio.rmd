@@ -1,0 +1,70 @@
+---
+title: "Experimento Propio"
+author: 
+    - "Zoe Borrone"
+    - "Luca Mazzarello"
+    - "Ignacio Pardo"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# source("exp_3.R")
+
+set.seed(364630336)
+
+# Leer tabla en "outputs/tables/exp3.txt"
+library(ggplot2) # For creating plots
+library(dplyr) # For data manipulation
+library(knitr)
+library(tidyr)
+
+filename_exp_results <- "outputs/tables/propio_exp.txt"
+
+exp_results <- read.table(filename_exp_results, header=TRUE, sep="\t")
+
+# Rename exp_results prop_NAs column to ohe
+exp_results <- exp_results %>%
+  rename(ohe = prop_NAs)
+
+# Replace 0 with FALSE and 1 with TRUE
+exp_results$ohe <- ifelse(exp_results$ohe == 0, FALSE, TRUE)
+
+churn <- exp_results %>%
+  filter(dataset_name == "Churn")
+
+heart <- exp_results %>%
+  filter(dataset_name == "Heart")
+
+student <- exp_results %>%
+  filter(dataset_name == "Student")
+```
+
+## Introducción y Metodología
+
+Para desarrollar este experimento se planteo testear el comportamiento de los modelos al aplicarle ruido a los valores de los atributos numericos en distintas proporciones, viendo si esto afecta el desempeño de los modelos.
+
+Para esto se modificó el script de ejemplo `sample_exp.R` para aplicar ruido a cada dataset pasado a la función `run_experiment` en distintas proporciones. El ruido se aplica de la siguiente manera:
+
+Se setean las proporciones de ruido a aplicar `prop_noise` $\in {0, 0.2, 0.4, 0.6, 0.8}$.
+
+1. Para cada dataset dado: se obtienen las columnas de atributos numericos.
+2. Para cada columna de atributos numericos: se obtiene el valor minimos y el valor maximo.
+3. Para cada proporción `prop_noise`,
+4. Para cada valor de cada atributo numerico,
+4. Se genera un valor aleatorio $r$ entre el minimo y el maximo con una distribución uniforme.
+5. Se genera un segundo valor aleatorio uniforme $p$ entre 0 y 1.
+6. Si $p < $ `prop_noise`, se reemplaza el valor original por $r$.
+
+Luego, cada valor númerico va a haber sido reemplazado por un ruido entre los valores conocidos de la columna, con una probabilidad `prop_noise`.
+
+Como notamos en el experimento anterior (opción 3), los datasets cuentan con distintas proporciones de variables numéricas, el dataset de _Heart_ cuenta con 6 variables numéricas de 11 atributos totales, el dataset de _Churn_ cuenta con 10 variables numéricas de 13 atributos totales y el dataset de _Student_ cuenta con 13 variables numéricas de 30 atributos totales. Si los modelos priorizan los atributos numéricos, esperamos que el ruido afecte más a los modelos de _Heart_ y _Churn_ que al de _Student_.
+
+## Resultados
+
+![Resultados `prop_noise` $\in {0, 0.2, 0.4, 0.6, 0.8}$](outputs/plots/propio_exp.jpg)
+
+Como se puede observar en la Figura 1, parecería ser que el ruido influye en la performance de aquellos modelos que no imputan los valores faltantes, esto se debe a que al aplicar ruido a los valores de los atributos numéricos, se generan valores que no son los reales donde quizas no existía un valor faltante, por lo que el modelo no puede predecir correctamente.
+
+Para el dataset de _Iranian Churn_ que cuenta con mayoría de atributos numéricos, se puede observar que los modelos que no imputan los valores faltantes, tienen una performance mucho menor que los que si lo hacen. En cambio para el dataset de _Heart_ que cuenta con una proporción menor de atributos numéricos, la performance de los modelos que no imputan los valores faltantes no se ve tan afectada.

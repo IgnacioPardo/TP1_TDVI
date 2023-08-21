@@ -7,9 +7,10 @@ author:
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
-source ("exp_3.R")
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# source("exp_3.R")
 
 set.seed(364630336)
 
@@ -55,21 +56,25 @@ student_ohe <- student %>%
 
 ## Introducción
 
-Para desarrollar este experimento se planteo testear el comportamiento del modelo al aplicar *One-Hot Enconding* a las variables de los datasets. 
+Para desarrollar este experimento se planteo testear el comportamiento del modelo al aplicar **One-Hot Encoding** (OHE) a las variables de los datasets. El objetivo es observar si el modelo mejora su performance al aplicarle OHE a las variables categóricas de los datasets. Ademas veremos si el modelo se ve afectado por la imputación de los valores faltantes.
 
 ## Resultados
 
-![Resultados con y sin One-Hot Enconding](outputs/plots/exp3.jpg)
+A simple vista parecería ser que los modelos entrenados con los datasets _Churn_ y _Student_ no se ven demasiado alterados al hacerles **OHE**, pero al modelo entrenado con el dataset de _Heart Disease_ parece alcanzar mayor performance, especialmente al Imputarle los valores faltantes, pero ademas luego de caer a un menor valor mínimo de AUC parece remontar un poco mas su performance que aquel modelo al que no se lo preprocesó haciendo OHE.
 
-En la figura no se logran observar diferencias significativas entre los resultados obtenidos con y sin *One-Hot Enconding*, por lo que generamos 3 figuras nuevas una por cada dataset para poder observar mejor los resultados.
+Como en la figura no se logran observar diferencias muy significativas entre los resultados obtenidos con y sin *One-Hot Encoding* para los modelos de _Churn_ y _Student_ generamos 3 figuras nuevas una por cada dataset para poder observar mejor los resultados.
+
+
+![Resultados sin (0/izquierda) y con (1/derecha) One-Hot Encoding](outputs/plots/exp3.jpg)
+
+
+\newpage
 
 ### Churn
 
-Para el dataset de Iranian Churn se observa que el mayor valor de AUC para el dataset sin *One-Hot Enconding* se obtiene con un árbol de `maxdepth=7` cuando no se imputan los valores faltantes y con un árbol de `maxdepth=5` cuando si se imputan los valores faltantes con la media. 
+Como se puede observar en la "_Tabla 1_", para el dataset de Iranian Churn el mayor valor de AUC alcanzado para el dataset sin *One-Hot Encoding* se obtiene con un árbol de `maxdepth=5` cuando no se imputan los valores faltantes y con un árbol de `maxdepth=7` cuando si se imputan los valores faltantes con la media. 
 
-En cambio, para el dataset con *One-Hot Enconding* se obtiene el mayor valor de AUC con un árbol de `maxdepth=6` cuando no se imputan los valores faltantes y con un árbol de `maxdepth=5` cuando se imputan los valores faltantes con la media.
-
-
+En cambio, para el dataset con *One-Hot Encoding* se obtiene el mayor valor de AUC con un árbol de `maxdepth=8` cuando no se imputan los valores faltantes y con un árbol de `maxdepth=7` cuando se imputan los valores faltantes con la media. Ademas parecería ser que luego de llegar a sus respectivos máximos para cada caso, los modelos con *One-Hot Encoding* se mantienen mas cercanos al máximo inicial que aquellos sin *One-Hot Encoding*. Esto podría ser porque su pico no fue dado por volverse overfitteado. 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Get tree depth with max AUC for each imputation method
@@ -78,6 +83,9 @@ churn_maxs <- churn_ohe %>%
   group_by(IMPUTED, ohe) %>%
   filter(mean_auc == max(mean_auc)) %>%
   select(maxdepth, IMPUTED, mean_auc, ohe)
+
+churn_maxs <- churn_maxs %>%
+    arrange(ohe)
 
 # Replace TRUE/FALSE w Yes/No in ohe column
 churn_maxs$ohe <- ifelse(churn_maxs$ohe == TRUE, "Yes", "No")
@@ -97,6 +105,59 @@ ggplot(churn_ohe, aes(x = maxdepth, y = mean_auc, color = IMPUTED)) +
   theme_minimal()
 ```
 
+\newpage
+
+### Heart
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Get tree depth with max AUC for each imputation method
+
+heart_maxs <- heart_ohe %>%
+  group_by(IMPUTED, ohe) %>%
+  filter(mean_auc == max(mean_auc)) %>%
+  select(maxdepth, IMPUTED, mean_auc, ohe)
+
+# Sort by ohe
+
+heart_maxs <- heart_maxs %>%
+  arrange(ohe)
+
+```
+
+Como planteamos anteriormente, al aplicar **OHE** al dataset de _Heart Disease_ previo a entrenar los modelos, podemos observar en la Figura Heart que dichos modelos "exageran" sus métricas de AUC respecto a los modelos entrenados con el dataset sin *One-Hot Encoding*. Esto se debe a que al aplicar **OHE** a las variables categóricas, estas pasan a ser numéricas y por lo tanto el modelo puede entrenarse con ellas. En contraste con el dataset de _Churn_ que contiene 3/13 variables catericas, el dataset _Heart Disease_ contiene 5/11 variables categóricas lo que parece mejorar la performance.
+
+Para los modelos entrenados con el dataset de _Heart Disease_ podemos observar en la Tabla 2 como para tanto imputar datos faltantes y como para hacer o no **OHE**, los arboles alcanzan todos sus máximos valores de AUC cuando su `maxdepth` es 4. Sin embargo, el valor medio de sus AUC entre los repetidos entrenamientos de cada modelo con dichos hiper-parametros es mayor para los modelos con *One-Hot Encoding* (~0.894 sin imputar y ~0.881 imputando) que para los modelos sin *One-Hot Encoding* (~0.871 sin imputar y ~0.873 imputando). 
+
+Aunque a simple vista parecía ser que el modelo alcanza menores mínimos al hacer **OHE**, en la Tabla 3 podemos observar que la diferencia es minúscula.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Replace TRUE/FALSE w Yes/No in ohe column
+heart_maxs$ohe <- ifelse(heart_maxs$ohe == TRUE, "Yes", "No")
+
+kable(heart_maxs, caption = "Heart Max AUCs")
+
+# Min values
+
+heart_mins <- heart_ohe %>%
+  group_by(IMPUTED, ohe) %>%
+  filter(mean_auc == min(mean_auc)) %>%
+  select(maxdepth, IMPUTED, mean_auc, ohe)
+
+# Sort by ohe
+
+heart_mins <- heart_mins %>%
+  arrange(ohe)
+
+# Replace TRUE/FALSE w Yes/No in ohe column
+heart_mins$ohe <- ifelse(heart_mins$ohe == TRUE, "Yes", "No")
+
+kable(heart_mins, caption = "Heart Min AUCs")
+```
+De todas formas, las "colas" para los modelos de mayor profundidad, parecen tener mayores valores medios de AUC que para los modelos sin *One-Hot Encoding*, casi como si el modelo fuese a repuntar. Esto podría ser porque el modelo no se volvió overfitteado y por lo tanto puede seguir aprendiendo de los datos, aunque al ser mínimo no nos pareció suficiente como para avanzar.
+
+\newpage
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(heart_ohe, aes(x = maxdepth, y = mean_auc, color = IMPUTED)) +
   geom_line() +
@@ -110,6 +171,12 @@ ggplot(heart_ohe, aes(x = maxdepth, y = mean_auc, color = IMPUTED)) +
 
 ```
 
+\newpage
+
+### Student
+
+El último caso no respeta lo planteado para los datasets anteriores, ya que al aplicarle **OHE** al dataset de Student Performance previo a entrenar los Arboles de Decisión, podemos observar que dichos modelos no alcanzan los mismos valores medios máximos de AUC que aquellos a los que no se le aplico **OHE**. Esto creemos que se debe a que el dataset aunque no contenía muchas variables numéricas (13/30) con respecto al total, el resto de las variables categóricas se veían distribuidas entre binarias (13/30) y nominales (4/30), lo cual parecería ser empeora la performance del modelo al aplicarle **OHE**. Probablemente ocurra por convertir las variables binarias mas que por las nominales.
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(student_ohe, aes(x = maxdepth, y = mean_auc, color = IMPUTED)) +
   geom_line() +
@@ -121,3 +188,7 @@ ggplot(student_ohe, aes(x = maxdepth, y = mean_auc, color = IMPUTED)) +
        color = "Imputed") +
   theme_minimal()
 ```
+
+## Conclusiones    
+
+Aunque no parecería haber un patron discernible entre los comportamientos de los modelos con y sin **OHE** entre los distintos datasets, una buena interpretación es que sus curvas de performance se ven "escaladas", ya sea para mejor como en "Heart Disease" como para peor en "Iranian Churn" y "Student Performance". Nuestra interpretación esta basada en que este "escalado" esta dado por la proporción de variables categóricas contra las variables numéricas de cada dataset. En aquel dataset cuya proporción era necesariamente mayor (Heart 5/11), el modelo se veía beneficiado por el **OHE** y en aquellos cuya proporción era menor (Churn 3/13), el modelo se veía perjudicado, aunque mínimo, por el **OHE**.

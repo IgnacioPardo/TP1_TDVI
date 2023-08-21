@@ -1,3 +1,5 @@
+set.seed(364630336)
+
 # Load the necessary libraries for data analysis and visualization
 library(ggplot2)  # For creating plots
 library(dplyr)    # For data manipulation
@@ -31,25 +33,27 @@ run_experiment <- function(datasets_to_pred, filepath) {
   for (dtp in datasets_to_pred) {
     for (impute in c("Yes", "No")) {
       for (prop_NAs in c(0)) {
-        
-        for (prop_noise in c(0, 0.2, 0.5)){
+        for (prop_noise in seq(0, 0.8, 0.2)) {
           
           numeric_keys <- dtp$data_df %>%
             select_if(is.numeric) %>%
             names()
           
           for (key in numeric_keys) {
-            dtp$data_df[, key] <- as.numeric(dtp$data_df[, key])
             
-            min_val <- min(dtp$data_df[, key])
-            max_val <- max(dtp$data_df[, key])
-            noise <- runif(nrow(dtp$data_df), min_val, max_val)
-            noise <- round(noise)
-            
-            p <- runif(1, 0, 1)
-            
-            if (p < prop_noise) {
-              dtp$data_df[, key] <- noise
+            for (j in seq_len(nrow(dtp$data_df))) {
+
+                p <- runif(1, 0, 1)
+                
+                if (p < prop_noise && prop_noise != 0){
+
+                    min_val <- min(dtp$data_df[, key])
+                    max_val <- max(dtp$data_df[, key])
+                    noise <- runif(1, min_val, max_val)
+                    noise <- round(noise)
+                    
+                    dtp$data_df[j, key] <- noise
+                }
             }
           }
         

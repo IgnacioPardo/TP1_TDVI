@@ -101,6 +101,8 @@ Los atributos son los siguientes 30:
 - 29 health - estado de salud actual (numérico: de 1 - muy malo a 5 - muy bueno)
 - 30 absences - número de faltas de asistencia a la escuela (numérico: de 0 a 93)
 
+13 binarias, 4 nominales contra 13 numericas
+
 El dataset tambien contiene las siguientes 3 variables de notas: 
 
 - 31 G1 - nota del primer trimestre (numérico: de 0 a 20)
