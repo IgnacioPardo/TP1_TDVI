@@ -11,7 +11,7 @@ N_BINS <- 10        # Define the number of bins for discretization
 RERUN_EXP <- TRUE   # Set the option to rerun the experiment
 
 # Load provided functions
-source("provided_functions.R")
+source("provided_functions_propio.R")
 
 #' Run an experiment to evaluate the performance of a predictive model under different conditions.
 #'
@@ -34,29 +34,6 @@ run_experiment <- function(datasets_to_pred, filepath) {
     for (impute in c("Yes", "No")) {
       for (prop_NAs in c(0)) {
         for (prop_noise in seq(0, 0.8, 0.2)) {
-          
-          numeric_keys <- dtp$data_df %>%
-            select_if(is.numeric) %>%
-            names()
-          
-          for (key in numeric_keys) {
-            
-            for (j in seq_len(nrow(dtp$data_df))) {
-
-                p <- runif(1, 0, 1)
-                
-                if (p < prop_noise && prop_noise != 0){
-
-                    min_val <- min(dtp$data_df[, key])
-                    max_val <- max(dtp$data_df[, key])
-                    noise <- runif(1, min_val, max_val)
-                    noise <- round(noise)
-                    
-                    dtp$data_df[j, key] <- noise
-                }
-            }
-          }
-        
         #print(c(dtp$dataset_name, impute, prop_NAs))
 
         # Configure preprocessing options based on imputation choice
@@ -69,7 +46,8 @@ run_experiment <- function(datasets_to_pred, filepath) {
             discretize=FALSE,
             n_bins=N_BINS,
             ord_to_numeric=FALSE,
-            prop_switch_y=0
+            prop_switch_y=0,
+            prop_noise=prop_noise
           )
         } else if (impute == "No") {
           preprocess_control <- list(
@@ -80,7 +58,8 @@ run_experiment <- function(datasets_to_pred, filepath) {
             discretize=FALSE,
             n_bins=N_BINS,
             ord_to_numeric=FALSE,
-            prop_switch_y=0
+            prop_switch_y=0,
+            prop_noise=prop_noise
           )
         }
 
