@@ -17,19 +17,15 @@ set.seed(364630336)
 # Leer tabla en "outputs/tables/exp3.txt"
 library(ggplot2) # For creating plots
 library(dplyr) # For data manipulation
-library(knitr)
-library(tidyr)
+library(knitr) # For kable
 
 filename_exp_results <- "outputs/tables/propio_exp.txt"
 
 exp_results <- read.table(filename_exp_results, header=TRUE, sep="\t")
 
-# Rename exp_results prop_NAs column to ohe
+# Rename exp_results prop_NAs column to noise
 exp_results <- exp_results %>%
-  rename(ohe = prop_NAs)
-
-# Replace 0 with FALSE and 1 with TRUE
-exp_results$ohe <- ifelse(exp_results$ohe == 0, FALSE, TRUE)
+  rename(noise = prop_NAs)
 
 churn <- exp_results %>%
   filter(dataset_name == "Churn")
@@ -47,17 +43,19 @@ Para desarrollar este experimento se planteo testear el comportamiento de los mo
 
 Para esto se modificó el script de ejemplo `sample_exp.R` para aplicar ruido a cada dataset pasado a la función `run_experiment` en distintas proporciones. El ruido se aplica de la siguiente manera:
 
-Se setean las proporciones de ruido a aplicar `prop_noise` $\in {0, 0.2, 0.4, 0.6, 0.8}$.
+A través de las distintas proporciones de ruido a aplicar: `prop_noise` $\in {0, 0.2, 0.4, 0.6, 0.8}$.
 
-1. Para cada dataset dado: se obtienen las columnas de atributos numericos.
-2. Para cada columna de atributos numericos: se obtiene el valor minimos y el valor maximo.
-3. Para cada proporción `prop_noise`,
-4. Para cada valor de cada atributo numerico,
-4. Se genera un valor aleatorio $r$ entre el minimo y el maximo con una distribución uniforme.
-5. Se genera un segundo valor aleatorio uniforme $p$ entre 0 y 1.
-6. Si $p < $ `prop_noise`, se reemplaza el valor original por $r$.
+- Para cada dataset dado: se obtienen las columnas de atributos numericos.
+- Para cada columna de atributos numericos: se obtiene el valor minimos y el valor maximo.
+- Para cada proporción `prop_noise`,
+- Para cada valor de cada atributo numerico,
+- Se genera un valor aleatorio $r$ entre el minimo y el maximo con una distribución uniforme.
+- Se genera un segundo valor aleatorio uniforme $p$ entre 0 y 1.
+- Si $p < $ `prop_noise`, se reemplaza el valor original por $r$.
 
 Luego, cada valor númerico va a haber sido reemplazado por un ruido entre los valores conocidos de la columna, con una probabilidad `prop_noise`.
+
+Algo que cabe detallar, optamos por aplicar este ruido luego de haber imputado datos faltantes. En este sentido el ruido que simulamos podría tratarse a de ruido a la hora de registrar los datos y no una vez que el dataset ya se armó. Esto lo hicimos para poder comparar con los resultados de los experimentos anteriores.
 
 Como notamos en el experimento anterior (opción 3), los datasets cuentan con distintas proporciones de variables numéricas, el dataset de _Heart_ cuenta con 6 variables numéricas de 11 atributos totales, el dataset de _Churn_ cuenta con 10 variables numéricas de 13 atributos totales y el dataset de _Student_ cuenta con 13 variables numéricas de 30 atributos totales. Si los modelos priorizan los atributos numéricos, esperamos que el ruido afecte más a los modelos de _Heart_ y _Churn_ que al de _Student_.
 
@@ -65,6 +63,95 @@ Como notamos en el experimento anterior (opción 3), los datasets cuentan con di
 
 ![Resultados `prop_noise` $\in {0, 0.2, 0.4, 0.6, 0.8}$](outputs/plots/propio_exp.jpg)
 
-Como se puede observar en la Figura 1, parecería ser que el ruido influye en la performance de aquellos modelos que no imputan los valores faltantes, esto se debe a que al aplicar ruido a los valores de los atributos numéricos, se generan valores que no son los reales donde quizas no existía un valor faltante, por lo que el modelo no puede predecir correctamente.
+### Churn
 
-Para el dataset de _Iranian Churn_ que cuenta con mayoría de atributos numéricos, se puede observar que los modelos que no imputan los valores faltantes, tienen una performance mucho menor que los que si lo hacen. En cambio para el dataset de _Heart_ que cuenta con una proporción menor de atributos numéricos, la performance de los modelos que no imputan los valores faltantes no se ve tan afectada.
+Para el dataset de _Iranian Churn_ que cuenta con mayoría de atributos numéricos, se puede observar que la performance del modelo disminuye a medida que crece el ruido porcentual aplicado a los atributos numéricos. Podemos ver en la Tabla 1 como el máximo AUC promedio a traves de los distintos `max_depths` de arboles disminuye a medida que aumenta el ruido.
+
+Ademas, tanto para cuando se imputan datos faltantes como para cuando no, el `max_depth` que maximiza el AUC promedio decrece a medida que aumenta el ruido.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Get mean AUC across all maxdepths, and max mean AUC for Imputed vs Non-Imputed
+
+churn_noise <- churn %>%
+  group_by(maxdepth, IMPUTED, noise) %>%
+  summarize(mean_auc = mean(auc), .groups = "drop")
+
+churn_maxs <- churn_noise %>%
+  group_by(IMPUTED, noise) %>%
+  filter(mean_auc == max(mean_auc)) %>%
+  select(maxdepth, IMPUTED, mean_auc, noise) %>%
+  arrange(noise) %>%
+  arrange(IMPUTED)
+
+kable(churn_maxs, caption = "Max mean AUC a traves de profundidades de arboles maximas en Iranian Churn y metodos de imputacion")
+```
+
+Algo interesante que notamos, es que para profundidades de árboles mayores, a mayor ruido la performance empeora mas que para profundidades de árboles menores. Esto se puede ver en la Figura 1 para los gráficos de Churn, donde se puede observar que para profundidades de árboles mayores, el AUC promedio decrece más a medida que aumenta el ruido. Esto es porque el modelo se vuelve mas flexible y se ajusta mas a los datos de entrenamiento que están alterados por el ruido.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+churn_mins <- churn_noise %>%
+  group_by(IMPUTED, noise) %>%
+  filter(maxdepth > 5) %>%
+  filter(mean_auc == min(mean_auc)) %>%
+  select(maxdepth, IMPUTED, mean_auc, noise) %>%
+  arrange(noise) %>%
+  arrange(IMPUTED)
+
+kable(churn_mins, caption = "Min mean AUC a traves de profundidades de arboles maximas en Iranian Churn y metodos de imputacion")
+```
+
+En contraste con la Tabla 1 donde podemos ver que la performance máxima promedio del modelo a medida que crece el ruido decrece en a lo sumo $~5$ puntos, en la Tabla 2 podemos ver que la performance mínima promedio del modelo a medida que crece el ruido decrece en a lo sumo $~20$ puntos. Afirmando lo que observabamos en la Figura 1 para los gráficos de Churn, que para profundidades de árboles mayores, el AUC promedio decrece más a medida que aumenta el ruido.
+
+### Heart
+
+Para el dataset de _Heart Disease_ que cuenta con mayoría de atributos categóricos, se puede observar que la performance del modelo no se demasiado ve afectada por el ruido aplicado a los atributos numéricos. Podemos ver en la Tabla 3 como el máximo AUC promedio a traves de los distintos `max_depths` de arboles se mantiene constante a medida que aumenta el ruido.
+
+Ademas, tanto para cuando se imputan datos faltantes como para cuando no, el `max_depth` que maximiza el AUC promedio se mantiene constante a medida que aumenta el ruido.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+heart_noise <- heart %>%
+  group_by(maxdepth, IMPUTED, noise) %>%
+  summarize(mean_auc = mean(auc), .groups = "drop")
+
+heart_maxs <- heart_noise %>%
+  group_by(IMPUTED, noise) %>%
+  filter(mean_auc == max(mean_auc)) %>%
+  select(maxdepth, IMPUTED, mean_auc, noise) %>%
+  arrange(noise) %>%
+  arrange(IMPUTED)
+
+kable(heart_maxs, caption = "Max mean AUC a traves de profundidades de arboles maximas en Heart Disease y metodos de imputacion")
+```
+
+### Student
+
+Para el dataset de _Student Performance_ sucede algo similar a lo que sucede con el dataset de _Iranian Churn_, la performance del modelo disminuye a medida que crece el ruido porcentual aplicado a los atributos numéricos. Podemos ver en la Tabla 4 como el máximo AUC promedio a traves de los distintos `max_depths` de arboles disminuye a medida que aumenta el ruido.
+
+Ademas, tanto para cuando se imputan datos faltantes como para cuando no, el `max_depth` que maximiza el AUC promedio decrece a medida que aumenta el ruido. Aunque inicialmente ya la profundidad máxima que maximiza el AUC promedio es menor que en los otros datasets.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+student_noise <- student %>%
+  group_by(maxdepth, IMPUTED, noise) %>%
+  summarize(mean_auc = mean(auc), .groups = "drop")
+
+student_maxs <- student_noise %>%
+  group_by(IMPUTED, noise) %>%
+  filter(mean_auc == max(mean_auc)) %>%
+  select(maxdepth, IMPUTED, mean_auc, noise) %>%
+  arrange(noise) %>%
+  arrange(IMPUTED)
+
+kable(student_maxs, caption = "Max mean AUC a traves de profundidades de arboles maximas en Student Performance y metodos de imputacion")
+```
+
+## Conclusiones
+
+Como se puede observar en los resultados, aplicar ruido a los atributos numéricos afecta la performance de los modelos, pero no de la misma manera para todos los datasets. 
+
+Para el dataset de _Heart Disease_, que cuenta iguales partes de atributos numéricos y categóricos, la performance del modelo no se vió afectada.
+
+Para los datasets de _Iranian Churn_ y _Student Performance_ que cuentan con gran cantidad de atributos numéricos, la performance del modelo disminuyó a medida que crece el ruido porcentual aplicado a los atributos numéricos. Esto se debe a que el modelo se vuelve mas flexible y se ajustó mas a los datos de entrenamiento que están alterados por el ruido.

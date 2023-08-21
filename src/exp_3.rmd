@@ -17,8 +17,7 @@ set.seed(364630336)
 # Leer tabla en "outputs/tables/exp3.txt"
 library(ggplot2) # For creating plots
 library(dplyr) # For data manipulation
-library(knitr)
-library(tidyr)
+library(knitr) # For kable
 
 filename_exp_results <- "outputs/tables/exp3.txt"
 

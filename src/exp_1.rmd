@@ -7,7 +7,10 @@ author:
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
-source ("exp_1.R")
+
+```{r, include=FALSE, echo=FALSE}
+# source ("exp_1.R")
+```
 
 ## Introducción y Metodología
 
