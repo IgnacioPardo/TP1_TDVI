@@ -92,7 +92,7 @@ Link: https://data.buenosaires.gob.ar/dataset/flujo-vehicular-anillo-digital/res
 
 ### Performance de estudiantes
 
-Este dataset contiene información sobre muchos estudiantes en dos escuelas secundarias de Portugal, y su performance en dos materias: Matemática y Portugués. Para llevar a cabo el experimento, nos quedamos con el dataset de Portugal ya que contiene más datos que el de Matemática (649 vs 395). Los atributos son los siguientes 30:
+Este dataset contiene información sobre muchos estudiantes en dos escuelas secundarias de Portugal, y su performance en dos materias: Matemática y Portugués. Para llevar a cabo el experimento, nos quedamos con el dataset de Portugués ya que contiene más datos que el de Matemática (649 vs 395). Los atributos son los siguientes 30:
 
 | Nombre | Tipo | Descripción |
 | --- | --- | --- |
@@ -127,7 +127,7 @@ Este dataset contiene información sobre muchos estudiantes en dos escuelas secu
 | health | numérico | estado de salud actual |
 | absences | numérico | número de faltas de asistencia a la escuela |
 
-(13 binarias, 4 nominales contra 13 numericas)
+(13 binarias, 4 nominales y 13 numericas)
 
 El dataset tambien contiene las siguientes 3 variables de notas: 
 
@@ -158,6 +158,6 @@ Se puede observar como para los 4 datasets, el modelo con `prop_NA = 0` muestra 
 
 Cabe destacar que para el dataset Churn, la caida es muy leve, manteniendose casi constante a medida que aumenta la profundidad del árbol. Por el otro lado, para el dataset Heart, se alcanza un valor de AUC casi igual a 1 pero luego al aumentar poco el tamaño del arbol este cae abruptamente.
 
-Sin embargo, para los 4 datasets, el modelo con `prop_NA = 0.7` muestra una performance casi constante a medida que aumenta la profundidad del árbol. Esto se debe a que al eliminar la mas de la mitad de los datos, el modelo no tiene suficiente información para aprender, por lo que no se sobreajusta a los datos de entrenamiento y generaliza mejor a los datos de validación.
+Sin embargo, para los 4 datasets, el modelo con `prop_NA = 0.7` muestra una performance casi constante a medida que aumenta la profundidad del árbol. Esto se debe a que al eliminar mas de la mitad de los datos, el modelo no tiene suficiente información para aprender, por lo que no se sobreajusta a los datos de entrenamiento y generaliza mejor a los datos de validación.
 
 En el dataset de Student Performance, se ve mayor variabilidad en el corto plazo con el incremento de la profundidad del árbol. Esto se debe a que el dataset contiene muchos datos, por lo que el modelo puede aprender mejor y por lo tanto sobreajustarse a los datos de entrenamiento.
