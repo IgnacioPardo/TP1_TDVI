@@ -31,33 +31,17 @@ run_experiment <- function(datasets_to_pred, filepath) {
 
   # Iterate through different dataset, imputation, and proportion of missing values combinations
   for (dtp in datasets_to_pred) {
-    for (impute in c("Yes", "No")) {
-      for (ohe in c(TRUE, FALSE)){
-        
-        # Configure preprocessing options based on imputation choice
-        if (impute == "Yes") {
-          preprocess_control <- list(
-            prop_NAs=0,
-            impute_NAs=TRUE,
-            treat_NAs_as_new_levels=FALSE,
-            do_ohe=ohe,
-            discretize=TRUE,
-            n_bins=N_BINS,
-            ord_to_numeric=FALSE,
-            prop_switch_y=0
-          )
-        } else if (impute == "No") {
-          preprocess_control <- list(
+    for (o2n_disc in c(FALSE, TRUE)){
+        preprocess_control <- list(
             prop_NAs=0,
             impute_NAs=FALSE,
             treat_NAs_as_new_levels=FALSE,
-            do_ohe=ohe,
-            discretize=TRUE,
+            do_ohe=FALSE,
+            discretize=o2n_disc,
             n_bins=N_BINS,
-            ord_to_numeric=FALSE,
+            ord_to_numeric=o2n_disc,
             prop_switch_y=0
           )
-        }
 
         # Perform the experiment for the current settings
         if (PARALLELIZE == TRUE) {
@@ -70,16 +54,19 @@ run_experiment <- function(datasets_to_pred, filepath) {
                                                   val_reps=30)
         }
 
-        res_tmp$IMPUTED <- impute
-        # use prop_NAs table value of ohe yes/no, convert TRUE/FALSE to 0 and 1
-        res_tmp$prop_NAs <- as.numeric(ohe)
+        # use DISCRETIZED value of o2n_disc yes/no, convert TRUE/FALSE to 0 and 1
+        res_tmp$DISCRETIZED <- as.numeric(o2n_disc)
+
+        print(res_tmp)  # Print the experiment results
         exp_results[[i]] <- res_tmp
         rm(res_tmp)  # Clean up temporary result
         i <- i + 1  # Increment result counter
       }
     }
-  }
+  
 
+  # Print the experiment results
+  print(exp_results)
   # Combine experiment results into a single data frame
   exp_results <- do.call(rbind, exp_results)
 
@@ -107,16 +94,16 @@ plot_exp_results <- function(filename_exp_results, filename_plot, width, height)
 
   # Calculate mean AUC values for different groups of experimental results
   data_for_plot <- exp_results %>%
-    group_by(dataset_name, prop_NAs, IMPUTED, maxdepth) %>%
+    group_by(dataset_name, DISCRETIZED, maxdepth) %>%
     summarize(mean_auc=mean(auc), .groups='drop')
 
   # Create a ggplot object for the line plot
-  g <- ggplot(data_for_plot, aes(x=maxdepth, y=mean_auc, color=IMPUTED)) +
+  g <- ggplot(data_for_plot, aes(x=maxdepth, y=mean_auc, color=DISCRETIZED)) +
     geom_line() +
     theme_bw() +
     xlab("Maximum tree depth") +
     ylab("AUC (estimated through repeated validation)") +
-    facet_grid(dataset_name ~ prop_NAs, scales="free_y") +
+    facet_grid(dataset_name ~ DISCRETIZED, scales="free_y") +
     theme(legend.position="bottom",
           panel.grid.major=element_blank(),
           strip.background=element_blank(),
