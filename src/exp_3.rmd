@@ -23,12 +23,8 @@ filename_exp_results <- "outputs/tables/exp3.txt"
 
 exp_results <- read.table(filename_exp_results, header=TRUE, sep="\t")
 
-# Rename exp_results prop_NAs column to ohe
-exp_results <- exp_results %>%
-  rename(ohe = prop_NAs)
-
 # Replace 0 with FALSE and 1 with TRUE
-exp_results$ohe <- ifelse(exp_results$ohe == 0, FALSE, TRUE)
+exp_results$DISCRETIZED <- ifelse(exp_results$DISCRETIZED == 0, FALSE, TRUE)
 
 churn <- exp_results %>%
   filter(dataset_name == "Churn")
@@ -39,16 +35,16 @@ heart <- exp_results %>%
 student <- exp_results %>%
   filter(dataset_name == "Student")
 
-churn_ohe <- churn %>%
-  group_by(maxdepth, IMPUTED, ohe) %>%
+churn_disc <- churn %>%
+  group_by(maxdepth, DISCRETIZED) %>%
   summarize(mean_auc = mean(auc), .groups = "drop")
 
-heart_ohe <- heart %>%
-    group_by(maxdepth, IMPUTED, ohe) %>%
+heart_disc <- heart %>%
+    group_by(maxdepth, DISCRETIZED) %>%
     summarize(mean_auc = mean(auc), .groups = "drop")
 
-student_ohe <- student %>%
-    group_by(maxdepth, IMPUTED, ohe) %>%
+student_disc <- student %>%
+    group_by(maxdepth, DISCRETIZED) %>%
     summarize(mean_auc = mean(auc), .groups = "drop")
 
 ```
@@ -78,25 +74,25 @@ En cambio, para el dataset con *One-Hot Encoding* se obtiene el mayor valor de A
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Get tree depth with max AUC for each imputation method
 
-churn_maxs <- churn_ohe %>%
-  group_by(IMPUTED, ohe) %>%
+churn_maxs <- churn_disc %>%
+  group_by(DISCRETIZED) %>%
   filter(mean_auc == max(mean_auc)) %>%
-  select(maxdepth, IMPUTED, mean_auc, ohe)
+  select(maxdepth, mean_auc, DISCRETIZED)
 
 churn_maxs <- churn_maxs %>%
-    arrange(ohe)
+    arrange(DISCRETIZED)
 
 # Replace TRUE/FALSE w Yes/No in ohe column
-churn_maxs$ohe <- ifelse(churn_maxs$ohe == TRUE, "Yes", "No")
+churn_maxs$DISCRETIZED <- ifelse(churn_maxs$DISCRETIZED == TRUE, "Yes", "No")
 
 kable(churn_maxs, caption = "Churn Max AUCs")
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(churn_ohe, aes(x = maxdepth, y = mean_auc, color = IMPUTED)) +
+ggplot(churn_disc, aes(x = maxdepth, y = mean_auc)) +
   geom_line() +
   geom_point() +
-  facet_wrap(~ohe) +
+  facet_wrap(~DISCRETIZED) +
   labs(title = "Churn",
        x = "Max Depth",
        y = "Mean AUC",
@@ -111,15 +107,15 @@ ggplot(churn_ohe, aes(x = maxdepth, y = mean_auc, color = IMPUTED)) +
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Get tree depth with max AUC for each imputation method
 
-heart_maxs <- heart_ohe %>%
-  group_by(IMPUTED, ohe) %>%
+heart_maxs <- heart_disc %>%
+  group_by(DISCRETIZED) %>%
   filter(mean_auc == max(mean_auc)) %>%
-  select(maxdepth, IMPUTED, mean_auc, ohe)
+  select(maxdepth, mean_auc, DISCRETIZED)
 
 # Sort by ohe
 
 heart_maxs <- heart_maxs %>%
-  arrange(ohe)
+  arrange(DISCRETIZED)
 
 ```
 
@@ -132,24 +128,24 @@ Aunque a simple vista parecía ser que el modelo alcanza menores mínimos al hac
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 # Replace TRUE/FALSE w Yes/No in ohe column
-heart_maxs$ohe <- ifelse(heart_maxs$ohe == TRUE, "Yes", "No")
+heart_maxs$DISCRETIZED <- ifelse(heart_maxs$DISCRETIZED == TRUE, "Yes", "No")
 
 kable(heart_maxs, caption = "Heart Max AUCs")
 
 # Min values
 
-heart_mins <- heart_ohe %>%
-  group_by(IMPUTED, ohe) %>%
+heart_mins <- heart_disc %>%
+  group_by(DISCRETIZED) %>%
   filter(mean_auc == min(mean_auc)) %>%
-  select(maxdepth, IMPUTED, mean_auc, ohe)
+  select(maxdepth, mean_auc, DISCRETIZED)
 
 # Sort by ohe
 
 heart_mins <- heart_mins %>%
-  arrange(ohe)
+  arrange(DISCRETIZED)
 
 # Replace TRUE/FALSE w Yes/No in ohe column
-heart_mins$ohe <- ifelse(heart_mins$ohe == TRUE, "Yes", "No")
+heart_mins$DISCRETIZED <- ifelse(heart_mins$DISCRETIZED == TRUE, "Yes", "No")
 
 kable(heart_mins, caption = "Heart Min AUCs")
 ```
@@ -158,10 +154,10 @@ De todas formas, las "colas" para los modelos de mayor profundidad, parecen tene
 \newpage
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(heart_ohe, aes(x = maxdepth, y = mean_auc, color = IMPUTED)) +
+ggplot(heart_disc, aes(x = maxdepth, y = mean_auc)) +
   geom_line() +
   geom_point() +
-  facet_wrap(~ohe) +
+  facet_wrap(~DISCRETIZED) +
   labs(title = "Heart",
        x = "Max Depth",
        y = "Mean AUC",
@@ -177,10 +173,10 @@ ggplot(heart_ohe, aes(x = maxdepth, y = mean_auc, color = IMPUTED)) +
 El último caso no respeta lo planteado para los datasets anteriores, ya que al aplicarle **OHE** al dataset de Student Performance previo a entrenar los Arboles de Decisión, podemos observar que dichos modelos no alcanzan los mismos valores medios máximos de AUC que aquellos a los que no se le aplico **OHE**. Esto creemos que se debe a que el dataset aunque no contenía muchas variables numéricas (13/30) con respecto al total, el resto de las variables categóricas se veían distribuidas entre binarias (13/30) y nominales (4/30), lo cual parecería ser empeora la performance del modelo al aplicarle **OHE**. Probablemente ocurra por convertir las variables binarias más que por las nominales.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(student_ohe, aes(x = maxdepth, y = mean_auc, color = IMPUTED)) +
+ggplot(student_disc, aes(x = maxdepth, y = mean_auc)) +
   geom_line() +
   geom_point() +
-  facet_wrap(~ohe) +
+  facet_wrap(~DISCRETIZED) +
   labs(title = "Student",
        x = "Max Depth",
        y = "Mean AUC",
