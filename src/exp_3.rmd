@@ -51,21 +51,25 @@ student_disc <- student %>%
 
 ## Introducción
 
-Para desarrollar este experimento estudiaremos como, para cada uno de los tres datasets analizados, cómo impacta tratar las variables categóricas ordinales con OHE estándar, versus convertirlas en un número que refleje el orden de las categorías (algo que se logra con discretize igual a TRUE, n_bins igual a 10 y ord_to_numeric igual a TRUE en preprocess_control).
+Para desarrollar este experimento se planteo testear el comportamiento del modelo al aplicar **One-Hot Encoding** (OHE) a las variables de los datasets. El objetivo es observar si el modelo mejora su performance al aplicarle OHE a las variables categóricas de los datasets. Además veremos si el modelo se ve afectado por la imputación de los valores faltantes.
 
 ## Resultados
 
-A simple vista, los datasets de _Churn_ y _Heart_ no parecen verse afectados por la discretización de las variables categóricas, mientras que el dataset de _Student_ parece verse afectado negativamente. Sin embargo, para poder analizarlo mejor, vamos a graficar la performance de los modelos para cada dataset en función de la profundidad máxima del árbol.
+A simple vista parecería ser que los modelos entrenados con los datasets _Churn_ y _Student_ no se ven demasiado alterados al hacerles **OHE**, pero al modelo entrenado con el dataset de _Heart Disease_ parece alcanzar mayor performance, especialmente al imputarle los valores faltantes, pero además luego de caer a un menor valor mínimo de AUC parece remontar un poco más su performance que aquel modelo al que no se lo preprocesó haciendo OHE.
 
-![Resultados sin (0/izquierda) y con (1/derecha) Discretización y Numericas](outputs/plots/exp3.jpg)
+Como en la figura no se logran observar diferencias muy significativas entre los resultados obtenidos con y sin *One-Hot Encoding* para los modelos de _Churn_ y _Student_ generamos 3 figuras nuevas una por cada dataset para poder observar mejor los resultados.
+
+
+![Resultados sin (0/izquierda) y con (1/derecha) One-Hot Encoding](outputs/plots/exp3.jpg)
 
 
 \newpage
 
 ### Churn
 
-Como se puede observar en la "_Tabla 1_", para el dataset de *Iranian Churn*, el mayor valor de ROC AUC se obtiene al procesar las variables categoricas convirtiendo sus valores en números que reflejen el orden de las categorías. Ademas, para el mayor valor de AUC alcanzado por el dataset sin procesar, se requirió de una mayor profundidad del árbol (`max_depth=9`) que para el dataset procesado (`max_depth=7`). Esto se puede observar en la "_Figura Churn_" donde se grafica la performance de los modelos en función de la profundidad máxima del árbol.
+Como se puede observar en la "_Tabla 1_", para el dataset de *Iranian Churn* el mayor valor de AUC alcanzado para el dataset sin *One-Hot Encoding* se obtiene con un árbol de `maxdepth=5` cuando no se imputan los valores faltantes y con un árbol de `maxdepth=7` cuando si se imputan los valores faltantes con la media. 
 
+En cambio, para el dataset con *One-Hot Encoding* se obtiene el mayor valor de AUC con un árbol de `maxdepth=8` cuando no se imputan los valores faltantes y con un árbol de `maxdepth=7` cuando se imputan los valores faltantes con la media. Además parecería ser que luego de llegar a sus respectivos máximos para cada caso, los modelos con *One-Hot Encoding* se mantienen más cercanos al máximo inicial que aquellos sin *One-Hot Encoding*. Esto podría ser porque su pico no fue dado por volverse overfitteado. 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Get tree depth with max AUC for each imputation method
@@ -91,11 +95,10 @@ ggplot(churn_disc, aes(x = maxdepth, y = mean_auc)) +
   facet_wrap(~DISCRETIZED) +
   labs(title = "Churn",
        x = "Max Depth",
-       y = "Mean AUC") +
+       y = "Mean AUC",
+       color = "Imputed") +
   theme_minimal()
 ```
-
-Por último, en la cola derecha de los gráficos, parece observarse que el modelo entrenado con el dataset procesado mantiene una performance más estable a medida que aumenta la profundidad del árbol.
 
 \newpage
 
@@ -116,10 +119,11 @@ heart_maxs <- heart_maxs %>%
 
 ```
 
-En este caso, en el gráfico inicial observamos que el dataset de *Heart Disease* parece obtener peores resultados al procesarlo. Para confirmar esto generamos la siguientes tablas (Table 2 y Table 3) donde podemos observar el valor máximo y mínimo de AUC para cada uno de los datasets.
+Como planteamos anteriormente, al aplicar **OHE** al dataset de _Heart Disease_ previo a entrenar los modelos, podemos observar en la Figura Heart que dichos modelos "exageran" sus métricas de AUC respecto a los modelos entrenados con el dataset sin *One-Hot Encoding*. Esto se debe a que al aplicar **OHE** a las variables categóricas, estas pasan a ser numéricas y por lo tanto el modelo puede entrenarse con ellas. En contraste con el dataset de _Churn_ que contiene 3/13 variables categóricas, el dataset _Heart Disease_ contiene 5/11 variables categóricas lo que parece mejorar la performance.
 
-Tanto para el valor maximo alcanzado como para el valor minimo, el dataset sin procesar obtiene mejores resultados y con profundidades de arboles menores.
+Para los modelos entrenados con el dataset de _Heart Disease_ podemos observar en la Tabla 2 como para tanto imputar datos faltantes y como para hacer o no **OHE**, los arboles alcanzan todos sus máximos valores de AUC cuando su `maxdepth=4`. Sin embargo, el valor medio de sus AUC entre los repetidos entrenamientos de cada modelo con dichos hiper-parametros es mayor para los modelos con *One-Hot Encoding* (~0.894 sin imputar y ~0.881 imputando) que para los modelos sin *One-Hot Encoding* (~0.871 sin imputar y ~0.873 imputando). 
 
+Aunque a simple vista parecía ser que el modelo alcanza menores mínimos al hacer **OHE**, en la Tabla 3 podemos observar que la diferencia es minúscula.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -145,8 +149,7 @@ heart_mins$DISCRETIZED <- ifelse(heart_mins$DISCRETIZED == TRUE, "Yes", "No")
 
 kable(heart_mins, caption = "Heart Min AUCs")
 ```
-
-
+De todas formas, las "colas" para los modelos de mayor profundidad, parecen tener mayores valores medios de AUC que para los modelos sin *One-Hot Encoding*, casi como si el modelo fuese a repuntar. Esto podría ser porque el modelo no se volvió overfitteado y por lo tanto puede seguir aprendiendo de los datos, aunque al ser mínimo no nos pareció suficiente como para avanzar.
 
 \newpage
 
@@ -167,51 +170,7 @@ ggplot(heart_disc, aes(x = maxdepth, y = mean_auc)) +
 
 ### Student
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-# Get tree depth with max AUC for each imputation method
-
-student_maxs <- student_disc %>%
-  group_by(DISCRETIZED) %>%
-  filter(mean_auc == max(mean_auc)) %>%
-  select(maxdepth, mean_auc, DISCRETIZED)
-
-# Sort by ohe
-
-student_maxs <- student_maxs %>%
-  arrange(DISCRETIZED)
-
-```
-
-Al igual que en el caso de *Heart Disease*, el dataset de *Student Performance* parece obtener peores resultados al procesarlo. Nuevamente generamos las siguientes tablas donde podemos observar el valor máximo y mínimo de AUC para cada uno de los datasets.
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-# Replace TRUE/FALSE w Yes/No in ohe column
-student_maxs$DISCRETIZED <- ifelse(student_maxs$DISCRETIZED == TRUE, "Yes", "No")
-
-kable(student_maxs, caption = "Student Max AUCs")
-
-# Min values
-
-student_mins <- student_disc %>%
-  group_by(DISCRETIZED) %>%
-  filter(mean_auc == min(mean_auc)) %>%
-  select(maxdepth, mean_auc, DISCRETIZED)
-
-# Sort by ohe
-
-student_mins <- student_mins %>%
-  arrange(DISCRETIZED)
-
-# Replace TRUE/FALSE w Yes/No in ohe column
-student_mins$DISCRETIZED <- ifelse(student_mins$DISCRETIZED == TRUE, "Yes", "No")
-
-kable(student_mins, caption = "Student Min AUCs")
-```
-
-A diferencia del dataset _Heart Disease_, tanto a los valores máximos como minimos con el dataset de _Student Performance_ con y sin procesar, se alcanzan con las mismas profundidades de arboles (`max_depth=6` a los máximos y `max_depth=1` a los mínimos). 
-
-Al igual que en el caso de _Heart Disease_, el dataset sin procesar alcanza un valor máximo mayor.
+El último caso no respeta lo planteado para los datasets anteriores, ya que al aplicarle **OHE** al dataset de Student Performance previo a entrenar los Arboles de Decisión, podemos observar que dichos modelos no alcanzan los mismos valores medios máximos de AUC que aquellos a los que no se le aplico **OHE**. Esto creemos que se debe a que el dataset aunque no contenía muchas variables numéricas (13/30) con respecto al total, el resto de las variables categóricas se veían distribuidas entre binarias (13/30) y nominales (4/30), lo cual parecería ser empeora la performance del modelo al aplicarle **OHE**. Probablemente ocurra por convertir las variables binarias más que por las nominales.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(student_disc, aes(x = maxdepth, y = mean_auc)) +
@@ -227,6 +186,4 @@ ggplot(student_disc, aes(x = maxdepth, y = mean_auc)) +
 
 ## Conclusiones    
 
-Aunque no parecería haber un patrón discernible entre los comportamientos de los modelos con y sin la discretización y la conversión de variables ordinales a numericas entre los distintos datasets, los resultados que obtuvimos fueron mayormente negativos.
-
-Nuestra interpretación esta basada en que estos resultados se encuentran dados por la proporción de variables categóricas contra las variables numéricas de cada dataset. En aquel dataset cuya proporción era necesariamente mayor (Heart 5/11), el modelo se veía perjudicado por el procesamiento y en aquellos cuya proporción era menor (Churn 3/13), el modelo se veía beneficiado, aunque mínimo, por el mismo. Para el caso de Student que contiene 13 variables numericas de 30 totales, el procesamiento afecta tambien negativamente al modelo.
+Aunque no parecería haber un patrón discernible entre los comportamientos de los modelos con y sin **OHE** entre los distintos datasets, una buena interpretación es que sus curvas de performance se ven "escaladas", ya sea para mejor como en "Heart Disease" como para peor en "Iranian Churn" y "Student Performance". Nuestra interpretación esta basada en que este "escalado" esta dado por la proporción de variables categóricas contra las variables numéricas de cada dataset. En aquel dataset cuya proporción era necesariamente mayor (Heart 5/11), el modelo se veía beneficiado por el **OHE** y en aquellos cuya proporción era menor (Churn 3/13), el modelo se veía perjudicado, aunque mínimo, por el **OHE**.
